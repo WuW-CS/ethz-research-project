@@ -1,27 +1,35 @@
 import ee
 import geemap
 
+# Initialize Earth Engine
 ee.Initialize()
 
-region = ee.Geometry.Rectangle([5.5, 45.5, 10.5, 48.0])
+# Bounding box for Madrid (approx. 200x200 km)
+# Format: [Min Longitude, Min Latitude, Max Longitude, Max Latitude]
+region = ee.Geometry.Rectangle([-4.87,39.51,-2.53,41.31])
 
-# img = (ee.ImageCollection("COPERNICUS/S5P/OFFL/L3_NO2")
-#        .select("tropospheric_NO2_column_number_density")
-#        .filterDate("2025-09-01", "2025-09-16")
-#        .mean()
-#       )
+band ="tropospheric_NO2_column_number_density"
 
-# out_dir = "/scratch4/willwu/datas/test/no2_switzerland.tif"
-# geemap.ee_export_image(img, filename=out_dir, scale=1113.2, region=region, crs="EPSG:4326")
+def add_valid_count(img):
+       n= img.reduceRegion(ee.Reducer.count(), region, 1113.2,maxPixels=1e9).get(band)
+       return img.set("n_valid",n)
+
+# Load TROPOMI NO2 Level-3 dataset
 collection = (ee.ImageCollection("COPERNICUS/S5P/OFFL/L3_NO2")
-              .select("tropospheric_NO2_column_number_density")
-              .filterDate("2025-09-01", "2025-09-05")
+              .select(band)
+              .filterDate("2025-09-01", "2025-09-16")
               .filterBounds(region)
+              .map(add_valid_count)                     
+              .filter(ee.Filter.gt("n_valid",2000))
               )
 
+
+
+# Batch export to local directory
 geemap.ee_export_image_collection(
        collection,
-       out_dir = "/scratch4/willwu/datas/test/",
+       out_dir = "/scratch4/willwu/datas/madrid/",
+       scale = 1113.2,
        region = region,
        crs ="EPSG:4326"
 )
