@@ -22,6 +22,10 @@ dem = to_grid(col.mosaic().setDefaultProjection(col.first().projection()))
 out = "/scratch4/willwu/datas/madrid/guides/"   
 geemap.ee_export_image(ghsl, filename=out + "ghsl_built_volum_total_2025.tif", scale=SCALE, region=region, crs=CRS)
 geemap.ee_export_image(dem,  filename=out + "dem_2025.tif",scale=SCALE, region=region, crs=CRS)
+
+
+
+#Download ghsl datas using task
 task = ee.batch.Export.image.toDrive(
     image=dem,
     description="dem_glo30_madrid",        
