@@ -13,11 +13,7 @@ Where each method comes from
                      nearest-neighbour upsampled input (standard way to get Kopf et al.'s
                      joint bilateral upsampling out of a joint bilateral filter).
 - guided_filter    : OpenCV contrib, cv2.ximgproc.guidedFilter (He et al., 2013), applied to
-                     the cubic-upsampled input. A NumPy reference of the same filter is included
-                     (_guided_filter_numpy) to cross-check the library and as a fallback.
-
-Requirements: numpy, scipy, opencv-contrib-python-headless  (NOT together with opencv-python:
-the two packages conflict; uninstall opencv-python first if you have it).
+                     the cubic-upsampled input. 
 
 Conventions shared by all methods
 ---------------------------------
@@ -112,7 +108,7 @@ def joint_bilateral(lr, guide, factor, sigma_spatial=1.0, sigma_range=0.1):
     return _restore_nan(out.astype(np.float64) * std + mean, valid, factor)
 
 
-def guided_filter(lr, guide, factor, radius=None, eps=1e-2, backend="opencv"):
+def guided_filter(lr, guide, factor, radius=None, eps=1e-2):
     """Guided filter (He et al., 2013) used for upsampling.
 
     Step 1: cubic-upsample `lr` to the HR grid. Step 2: filter it with the guide. Inside each
@@ -121,7 +117,6 @@ def guided_filter(lr, guide, factor, radius=None, eps=1e-2, backend="opencv"):
     radius  : window radius in HR pixels (default 2 * factor, i.e. about +-2 LR pixels).
     eps     : regularization on the guide variance (guide in [0, 1]); larger = smoother,
               less guide structure transferred. 1e-3 to 1e-1 is a reasonable range to try.
-    backend : "opencv" (cv2.ximgproc.guidedFilter) or "numpy" (reference implementation).
     """
     filled, valid = _fill_nan(lr)
     h, w = filled.shape
@@ -137,7 +132,7 @@ def guided_filter(lr, guide, factor, radius=None, eps=1e-2, backend="opencv"):
 
 
 
-# ----------------------------------------------------------------------------- self-test
+# ----------------------------------------------------------------------------- self-test LLM generated
 def _selftest():
     """Synthetic check: a truth that depends partly on the guide, degraded by block averaging."""
     rng = np.random.default_rng(0)
@@ -169,13 +164,7 @@ def _selftest():
     print(f"{'method':<26}{'RMSE vs truth':>16}{'consistency':>14}")
     for name, out in results.items():
         print(f"{name:<26}{rmse(out):>16.3e}{consistency(out):>14.3e}")
-
-    # cross-check: library guided filter vs NumPy reference (interior only, borders may differ)
-    a, b = results["guided_filter (opencv)"], results["guided_filter (numpy)"]
-    r = 2 * factor + 1
-    diff = np.abs(a - b)[r:-r, r:-r].max() / np.abs(a).max()
-    print(f"opencv vs numpy guided filter, max relative difference (interior): {diff:.2e}")
-
+ 
     # cross-check: scipy cubic vs OpenCV cubic
     cv = cv2.resize(lr.astype(np.float32), (w_lr * factor, h_lr * factor), interpolation=cv2.INTER_CUBIC)
     print(f"scipy vs cv2 cubic, RMSE of the difference: "

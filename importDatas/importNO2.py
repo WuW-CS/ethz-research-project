@@ -12,8 +12,8 @@ band ="tropospheric_NO2_column_number_density"
 
 
 def add_valid_count(img):
-       n= img.reduceRegion(ee.Reducer.count(), region, 1113.2,maxPixels=1e9).get(band)
-       return img.set("n_valid",n)
+    n= img.reduceRegion(ee.Reducer.count(), region, 1113.2,maxPixels=1e9).get(band)
+    return img.set("n_valid",n)
 
 # Load TROPOMI NO2 Level-3 dataset
 # collection = (ee.ImageCollection("COPERNICUS/S5P/OFFL/L3_NO2")
