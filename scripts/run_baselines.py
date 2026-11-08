@@ -26,6 +26,7 @@ NO2_FILE = DATAS / "L3_NO2_mean" / "madrid_no2_mean.tif"
 GUIDE_FILES = {                                   # first file matching each name
     "dem": sorted((DATAS / "guides").glob("*dem*.tif"))[0],
     "ghsl": sorted((DATAS / "guides").glob("*ghsl*.tif"))[0],
+    "osm": sorted((DATAS / "guides").glob("*osm*.tif"))[0],
 }
 FACTORS = [2, 4, 8]
 OUT_DIR = ROOT / "outputs" / "figures"
