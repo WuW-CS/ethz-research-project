@@ -1,80 +1,54 @@
 import os
 import numpy as np
-from pyrosm import OSM
-from geocube.api.core import make_geocube
-from scipy.ndimage import distance_transform_edt
-import rasterio
 import rioxarray
+from affine import Affine
+from pyrosm import OSM
+from rasterio import features
+from scipy.ndimage import distance_transform_edt
 
-# ==========================================
-# PARAMETERS
-# ==========================================
-# Ensure "spain-latest.osm.pbf" is downloaded in the same directory via wget
 osm_pbf_path = "/scratch4/willwu/datas/madrid/guides/spain-latest.osm.pbf"
-bbox_osm = [-4.87, 39.51, -2.53, 41.31] # [min_lon, min_lat, max_lon, max_lat]
-
 out_dir = "/scratch4/willwu/datas/madrid/guides/"
-os.makedirs(out_dir, exist_ok=True)
-
-# ==========================================
-# 1. READ OSM DATA
-# ==========================================
-print("1. Reading OSM data for the specified bounding box...")
-osm = OSM(osm_pbf_path, bounding_box=bbox_osm)
-
-# Extract only driving roads
-edges = osm.get_network(nodes=False, network_type="driving")
-
-if edges is None or edges.empty:
-    print("No roads found in the specified bounding box. Exiting.")
-    exit()
-
-print(f"2. Found {len(edges)} road segments. Preparing for rasterization...")
-
-# ==========================================
-# 2. RASTERIZE ROAD PRESENCE
-# ==========================================
-# Assign a constant value to represent the presence of a road
-edges["road_presence"] = 1
-
-print("3. Rasterizing roads using GeoCube...")
-
 template_path = out_dir + "dem_glo30_2024_1.tif"
-template_raster = rioxarray.open_rasterio(template_path)
-cube = make_geocube(
-    vector_data=edges,
-    measurements=["road_presence"],
-    like= template_raster, 
-    fill=0 # Fill empty areas with 0
-)
+K = 10  # thin sub-sampling (each cell ~1.1 km -> 10x10 sub-pixel)
 
-# ==========================================
-# 3. CALCULATE DISTANCE TO NEAREST ROAD
-# ==========================================
-print("4. Calculating distance to nearest road (for NO2 analysis)...")
-presence_array = cube["road_presence"].values
+# 1. template + bbox derived from raster
+tpl = rioxarray.open_rasterio(template_path).squeeze(drop=True)
+H, W = tpl.shape
+minx, miny, maxx, maxy = tpl.rio.bounds()
+m = 0.05
+bbox_osm = [minx - m, miny - m, maxx + m, maxy + m]
+print("CRS gabarit:", tpl.rio.crs, "| shape:", tpl.shape, "| bbox:", bbox_osm)
 
-# The distance_transform_edt function calculates the distance to the nearest ZERO.
-# We want the distance TO the roads. So we invert our logic:
-# Roads become 0 (target), background becomes 1.
-background_mask = (presence_array == 0)
+# 2. Lecture OSM
+edges = OSM(osm_pbf_path, bounding_box=bbox_osm).get_network(nodes=False, network_type="driving")
+if edges is None or edges.empty:
+    raise SystemExit("No roads found")
+edges = edges.to_crs(tpl.rio.crs)
+print(f"{len(edges)} segments")
 
-# Calculate Euclidean distance (in pixels)
-distance_in_pixels = distance_transform_edt(background_mask)
+# 3. Rasterisation on thin grid
+fine_tr = tpl.rio.transform() * Affine.scale(1 / K, 1 / K)
+fine = features.rasterize(((g, 1) for g in edges.geometry if g is not None),
+                          out_shape=(H * K, W * K), transform=fine_tr,
+                          fill=0, all_touched=True, dtype="uint8")
 
-res_x = abs(template_raster.rio.resolution()[0])
-distance_in_degrees = distance_in_pixels * res_x
+# 4a. density of road per cell
+density = fine.reshape(H, K, W, K).mean(axis=(1, 3))
+print("% cellules avec route:", (density > 0).mean() * 100)
 
-# Add the distance array as a new variable in our dataset
-cube["road_distance"] = (cube["road_presence"].dims, distance_in_degrees)
+# 4b. Distance (km) to the nearest road pixel, on thin grid
+res_x, res_y = abs(tpl.rio.resolution()[0]), abs(tpl.rio.resolution()[1])
+lat0 = (miny + maxy) / 2
+dy_km = res_y / K * 111.32
+dx_km = res_x / K * 111.32 * np.cos(np.deg2rad(lat0))
+dist_fine = distance_transform_edt(fine == 0, sampling=(dy_km, dx_km))
+dist = dist_fine.reshape(H, K, W, K).mean(axis=(1, 3))  # mean distance per cell
 
-# ==========================================
-# 4. EXPORT TO GEOTIFF
-# ==========================================
-out_dist_file = out_dir + "osm_roads_distance_madrid.tif"
-print(f"5. Saving distance raster to {out_dist_file}...")
+# 5. Export
+def save(arr, name):
+    out = tpl.copy(data=arr.astype("float32"))
+    out.rio.to_raster(out_dir + name)
+    print("saved", name)
 
-# Export the distance map
-cube["road_distance"].rio.to_raster(out_dist_file)
-
-print("OSM distance processing completed successfully!")
+save(np.log1p(1000 * density), "osm_roads_density_madrid.tif")
+save(np.log1p(dist), "osm_roads_distance_madrid.tif")
