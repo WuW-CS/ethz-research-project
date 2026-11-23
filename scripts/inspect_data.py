@@ -3,16 +3,16 @@ inspect_data.py - quick inspection of a single-band GeoTIFF: NO2, DEM or GHSL.
 
 What the script does
 --------------------
-1. Opens a GeoTIFF exported from Google Earth Engine on the Madrid grid.
+1. Opens a GeoTIFF exported from Google Earth Engine on the location grid.
 2. Prints raster information: dimensions, coordinate reference system, extent.
 3. Prints statistics (min, max, mean, number of valid pixels).
-4. Draws a map of the Madrid area with a few landmark cities and saves it as a PNG.
+4. Draws a map of the location area with a few landmark cities and saves it as a PNG.
 
 Usage
 -----
-    python inspect_data.py --kind no2  --file /scratch4/willwu/datas/madrid/L3_NO2/<file>.tif
-    python inspect_data.py --kind dem  --file /scratch4/willwu/datas/madrid/guides/<dem>.tif
-    python inspect_data.py --kind ghsl --file /scratch4/willwu/datas/madrid/guides/<ghsl>.tif
+    python inspect_data.py --kind no2  --file /scratch4/willwu/datas/<location>/L3_NO2/<file>.tif
+    python inspect_data.py --kind dem  --file /scratch4/willwu/datas/<locations>/guides/<dem>.tif
+    python inspect_data.py --kind ghsl --file /scratch4/willwu/datas/<locations>/guides/<ghsl>.tif
     # optional: --out my_figure.png   (default: <kind>_madrid_preview.png in this folder)
 
 Dependencies: rioxarray, numpy, matplotlib, cartopy

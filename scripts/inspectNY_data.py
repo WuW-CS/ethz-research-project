@@ -27,14 +27,6 @@ NaN = no data. It depends on the kind whether 0 also means "no data":
 - DEM : 0 m is a valid altitude (sea level, very common here) -> kept.
 - GHSL: 0 means "nothing built here" -> kept. Converting it to NaN would erase the information.
 
-About the file names
---------------------
-GEE names the L3 images <start>_<second timestamp>.tif. The first timestamp (e.g. 20180719T171554)
-is the UTC start time of the orbit data, which is useful to check the overpass time against the
-airborne flights (S5P passes over NYC between about 17:00 and 19:00 UTC). The second timestamp is
-several days later in your files, so it does not look like the end of the sensing time; do not use
-it as the acquisition time. Some days have two files (e.g. 24 Aug: 15:57 and 17:38 UTC), which are
-two different orbits: check which one actually covers the flight area.
 """
 import argparse
 import os
@@ -97,6 +89,10 @@ KINDS = {
         label="Built-up volume (m³, mean per 100 m pixel)",   # check the unit on the GEE dataset page
         units="m³", cmap="magma", zero_is_nodata=False, vmin=0, vmax="p99", fmt=".2e",
     ),
+    "osm": dict(
+        title="OSM road - NYC / Long Island Sound",
+        label=""
+    )
 }
 
 

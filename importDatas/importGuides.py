@@ -4,7 +4,7 @@ import geemap
 ee.Initialize()
 
 SCALE, CRS = 1113.2, "EPSG:4326"
-region = ee.Geometry.Rectangle([-4.87,39.51,-2.53,41.31])
+region = ee.Geometry.Rectangle([-74.8, 40.2, -72.2, 41.6])  #New York coordinates
 
 
 def to_grid(img):
@@ -19,7 +19,7 @@ ghsl =to_grid(ee.Image('JRC/GHSL/P2023A/GHS_BUILT_V/2025')
 col = ee.ImageCollection("COPERNICUS/DEM/GLO30_2024_1").select("DEM")
 dem = to_grid(col.mosaic().setDefaultProjection(col.first().projection()))
 
-out = "/scratch4/willwu/datas/madrid/guides/"   
+out = "/scratch4/willwu/datas/NY/guides/"   
 geemap.ee_export_image(ghsl, filename=out + "ghsl_built_volum_total_2025.tif", scale=SCALE, region=region, crs=CRS)
 geemap.ee_export_image(dem,  filename=out + "dem_2025.tif",scale=SCALE, region=region, crs=CRS)
 
@@ -28,7 +28,7 @@ geemap.ee_export_image(dem,  filename=out + "dem_2025.tif",scale=SCALE, region=r
 #Download ghsl datas using task
 task = ee.batch.Export.image.toDrive(
     image=dem,
-    description="dem_glo30_madrid",        
+    description="dem_glo30_ny",        
     folder="gee_exports",                  
     fileNamePrefix="dem_glo30_2024_1",     
     region=region,

@@ -6,9 +6,9 @@ from pyrosm import OSM
 from rasterio import features
 from scipy.ndimage import distance_transform_edt
 
-osm_pbf_path = "/scratch4/willwu/datas/madrid/guides/spain-latest.osm.pbf"
-out_dir = "/scratch4/willwu/datas/madrid/guides/"
-template_path = out_dir + "dem_glo30_2024_1.tif"
+osm_pbf_path = "/scratch4/willwu/datas/NY/guides/new-york-261121.osm.pbf"
+out_dir = "/scratch4/willwu/datas/NY/guides/"
+template_path = out_dir + "dem_2025.tif"
 K = 10  # thin sub-sampling (each cell ~1.1 km -> 10x10 sub-pixel)
 
 # 1. template + bbox derived from raster
@@ -50,5 +50,5 @@ def save(arr, name):
     out.rio.to_raster(out_dir + name)
     print("saved", name)
 
-save(np.log1p(1000 * density), "osm_roads_density_madrid.tif")
-save(np.log1p(dist), "osm_roads_distance_madrid.tif")
+save(np.log1p(1000 * density), "osm_roads_density_ny.tif")
+save(np.log1p(dist), "osm_roads_distance_ny.tif")
